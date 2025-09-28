@@ -45,7 +45,7 @@ class ListaEnlazada:
     def __len__(self):
         return self.longitud
 
-    # --- NUEVOS MÉTODOS PARA HACERLA ITERABLE ---
+    #  metodos para hacer iterable la lista. 
     def __iter__(self):
         """
         Prepara la lista para ser iterada. Se llama al inicio de un bucle for.

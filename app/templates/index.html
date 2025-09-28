@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proyecto 2 - Simulador de Riego Robótico</title>
+    <style>
+        :root{--color-verde-principal:#2E7D32;--color-azul-accion:#0277BD;--color-fondo-claro:#F4F8F4;--color-contenedor:#FFFFFF;--color-texto:#333333;--color-borde:#DDDDDD;--color-sombra:rgba(0, 0, 0, 0.1);--color-accion-regar:#E8F5E9;--color-accion-esperar:#F5F5F5;}
+        body{font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;background-color:var(--color-fondo-claro);color:var(--color-texto);margin:0;padding:20px;}
+        .container{max-width:900px;margin:auto;background-color:var(--color-contenedor);padding:30px;border-radius:8px;box-shadow:0 4px 12px var(--color-sombra);}
+        h1, h2{text-align:center;}
+        h1{color:var(--color-verde-principal);margin-bottom:10px;}
+        h2{border-bottom:2px solid var(--color-borde);padding-bottom:10px;margin-top:40px;color:var(--color-texto);}
+        hr{border:none;height:1px;background-color:var(--color-borde);margin:30px 0;}
+        form{margin-top:20px;}
+        label{font-weight:bold;display:block;margin-bottom:8px;}
+        input[type="file"], select{width:100%;padding:10px;border:1px solid var(--color-borde);border-radius:4px;box-sizing:border-box;margin-bottom:20px;}
+        button{background-color:var(--color-azul-accion);color:white;padding:12px 20px;border:none;border-radius:4px;cursor:pointer;font-size:16px;width:100%;transition:background-color 0.3s ease;}
+        button:hover{background-color:#01579B;}
+        .results-container{margin-top:20px;}
+        .summary-stats{background-color:var(--color-fondo-claro);padding:15px;border-radius:4px;margin-bottom:20px;border-left:5px solid var(--color-verde-principal);}
+        .summary-stats p{margin:5px 0;font-size:1.1em;}
+        table{width:100%;border-collapse:collapse;margin-top:20px;}
+        th, td{border:1px solid var(--color-borde);padding:10px;text-align:center;}
+        thead{background-color:var(--color-fondo-claro);}
+        th{font-weight:bold;}
+        .action-regar{background-color:var(--color-accion-regar);font-weight:bold;color:var(--color-verde-principal);}
+        .action-esperar{background-color:var(--color-accion-esperar);color:#757575;}
+        .action-fin{font-style:italic;color:#9E9E9E;}
+        .action-movimiento { color: var(--color-azul-accion); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Simulador de Riego Robótico</h1>
+        <p style="text-align: center;">Proyecto 2 - Introducción a la Programación y Computación 2</p>
+
+        <section id="upload-section">
+            <h2>1. Cargar Archivo de Configuración</h2>
+            <form action="/cargar" method="post" enctype="multipart/form-data">
+                <input type="file" name="archivo_xml" id="file" accept=".xml" required>
+                <button type="submit">Cargar y Procesar</button>
+            </form>
+        </section>
+
+        {% if invernaderos %}
+        <hr>
+        <section id="simulation-section">
+            <h2>2. Seleccionar y Simular</h2>
+            <form action="/" method="post">
+                <label for="invernadero_select">Selecciona un Invernadero:</label>
+                <select name="invernadero" id="invernadero_select" required>
+                    {% for invernadero in invernaderos %}
+                        <option value="{{ invernadero.nombre }}">{{ invernadero.nombre }}</option>
+                    {% endfor %}
+                </select>
+                
+                <label for="plan_riego_select">Selecciona un Plan de Riego:</label>
+                <select name="plan_riego" id="plan_riego_select" required></select>
+                
+                <button type="submit">Iniciar Simulación</button>
+            </form>
+        </section>
+        {% endif %}
+
+        <!-- SECCIÓN DE RESULTADOS CORREGIDA -->
+        {% if resultados %}
+        <hr>
+        <section id="results-section">
+            <h2>3. Resultados de la Simulación</h2>
+            <div class="results-container">
+                <div class="summary-stats">
+                    <p><strong>Invernadero:</strong> {{ resultados.nombre_invernadero }}</p>
+                    <p><strong>Plan de Riego:</strong> {{ resultados.nombre_plan }}</p>
+                    <p><strong>Tiempo Óptimo de Riego:</strong> {{ resultados.tiempo_optimo }} segundos</p>
+                </div>s
+
+                <h3>Instrucciones por Segundo</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Tiempo (s)</th>
+                            <!-- La cabecera se construye con los drones que realmente participaron -->
+                            {% for dron_stat in resultados.eficiencia_drones %}
+                                <th>{{ dron_stat.nombre }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for instruccion_segundo in resultados.instrucciones %}
+                        <tr>
+                            <td>{{ instruccion_segundo.segundo }}</td>
+                            <!-- Para cada dron en la cabecera, buscamos su acción en la lista de acciones del segundo actual -->
+                            {% for dron_stat in resultados.eficiencia_drones %}
+                                {% set accion_encontrada = namespace(valor='Fin') %}
+                                {% for accion_dron in instruccion_segundo.acciones %}
+                                    {% if accion_dron.nombre == dron_stat.nombre %}
+                                        {% set accion_encontrada.valor = accion_dron.accion %}
+                                    {% endif %}
+                                {% endfor %}
+                                {% set accion = accion_encontrada.valor %}
+                                <td class="{% if 'Regar' in accion %}action-regar{% elif 'Esperar' in accion %}action-esperar{% elif 'Fin' in accion %}action-fin{% else %}action-movimiento{% endif %}">
+                                    {{ accion }}
+                                </td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <h3>Estadísticas Finales por Dron</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Dron</th>
+                            <th>Agua Consumida (L)</th>
+                            <th>Fertilizante Consumido (g)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Este bucle ya estaba bien -->
+                        {% for dron_stat in resultados.eficiencia_drones %}
+                        <tr>
+                            <td>{{ dron_stat.nombre }}</td>
+                            <td>{{ dron_stat.litrosAgua }} L</td>
+                            <td>{{ dron_stat.gramosFertilizante }} g</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <hr style="margin: 30px 0;">
+                <h4>Generar Reporte de TDA (Cola de Tareas)</h4>
+                <p>
+                    Genera una imagen que muestra el estado de la cola de tareas para el plan de riego que acabas de simular.
+                </p>
+                <form action="/generar-grafo" method="post">
+                    <!-- Campos ocultos para enviar la información del plan actual -->
+                    <input type="hidden" name="nombre_invernadero" value="{{ resultados.nombre_invernadero }}">
+                    <input type="hidden" name="nombre_plan" value="{{ resultados.nombre_plan }}">
+                    <button type="submit">Generar Gráfico de la Cola</button>
+                </form>
+
+                <!-- Aquí es donde se mostrará la imagen del grafo -->
+                {% if grafo_path %}
+                <div style="margin-top: 20px; text-align: center;">
+                    <h4>Estado de la Cola de Tareas:</h4>
+                    <img src="{{ grafo_path }}" alt="Grafo del estado de la Cola de Tareas" style="max-width: 100%; border: 1px solid #ccc; padding: 5px;">
+                </div>
+                {% endif %}
+            </div>
+        </section>
+        {% endif %}
+
+        {% if invernaderos %}
+        <hr>
+        <section id="download-section">
+            <h2>4. Generar Reportes Globales</h2>
+            <form action="/generar-salida" method="post">
+                <p>
+                    Haz clic en el siguiente botón para simular todos los planes de todos los 
+                    invernaderos cargados y descargar el archivo <code>salida.xml</code> completo.
+                </p>
+                <button type="submit">Descargar Archivo de Salida (salida.xml)</button>
+                
+            </form>
+            <form action="/reporte-general" method="get" style="margin-top: 15px;">
+                <button type="submit">Ver Reporte HTML General</button>
+            </form>
+        </section>
+        {% endif %}
+    </div>
+
+    <script>
+        // Este script no necesita cambios, ya estaba bien.
+        const planesData = JSON.parse('{{ planes_data_json | safe }}');
+        const invernaderoSelect = document.getElementById('invernadero_select');
+        const planSelect = document.getElementById('plan_riego_select');
+
+        function actualizarPlanes() {
+            const invernaderoSeleccionado = invernaderoSelect.value;
+            const planesDisponibles = planesData[invernaderoSeleccionado] || [];
+            planSelect.innerHTML = '';
+            planesDisponibles.forEach(nombrePlan => {
+                const option = document.createElement('option');
+                option.value = nombrePlan;
+                option.textContent = nombrePlan;
+                planSelect.appendChild(option);
+            });
+        }
+
+        if (invernaderoSelect) {
+            actualizarPlanes();
+            invernaderoSelect.addEventListener('change', actualizarPlanes);
+        }
+    </script>
+</body>
+</html>

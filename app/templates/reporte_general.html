@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte General de Simulaciones</title>
+    <!-- Reutilizamos los mismos estilos de index.html para consistencia -->
+    <style>
+        :root{--color-verde-principal:#2E7D32;--color-azul-accion:#0277BD;--color-fondo-claro:#F4F8F4;--color-contenedor:#FFFFFF;--color-texto:#333333;--color-borde:#DDDDDD;--color-sombra:rgba(0, 0, 0, 0.1);--color-accion-regar:#E8F5E9;--color-accion-esperar:#F5F5F5;}
+        body{font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;background-color:var(--color-fondo-claro);color:var(--color-texto);margin:0;padding:20px;}
+        .main-container{max-width:1200px;margin:auto;background-color:var(--color-contenedor);padding:30px;border-radius:8px;box-shadow:0 4px 12px var(--color-sombra);}
+        h1, h2, h3{text-align:center;}
+        h1{color:var(--color-verde-principal);margin-bottom:10px;}
+        h2{border-bottom:2px solid var(--color-borde);padding-bottom:10px;margin-top:40px;color:var(--color-texto);}
+        h3{margin-top: 30px; background-color: var(--color-fondo-claro); padding: 10px; border-radius: 4px; border-left: 5px solid var(--color-azul-accion);}
+        hr{border:none;height:1px;background-color:var(--color-borde);margin:40px 0;}
+        table{width:100%;border-collapse:collapse;margin-top:20px; table-layout: fixed;}
+        th, td{border:1px solid var(--color-borde);padding:10px;text-align:center; word-wrap: break-word;}
+        thead{background-color:var(--color-fondo-claro);}
+        th{font-weight:bold;}
+        .action-regar{background-color:var(--color-accion-regar);font-weight:bold;color:var(--color-verde-principal);}
+        .action-esperar{background-color:var(--color-accion-esperar);color:#757575;}
+        .action-fin{font-style:italic;color:#9E9E9E;}
+        .action-movimiento { color: var(--color-azul-accion); }
+        .invernadero-section{margin-bottom: 50px;}
+        .stats-grid{display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:15px;text-align:center;margin-bottom:20px;}
+        .stat-box{background-color:#F9F9F9;padding:15px;border-radius:5px;border:1px solid var(--color-borde);}
+        .stat-box .label{font-weight:bold;color:var(--color-texto);display:block;}
+        .stat-box .value{font-size:1.5em;color:var(--color-verde-principal);}
+        a.back-link{display:inline-block;margin-top:20px;padding:10px 15px;background-color:var(--color-azul-accion);color:white;text-decoration:none;border-radius:4px;}
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <h1>Reporte General de Simulaciones</h1>
+        <p style="text-align: center;">Este reporte muestra los resultados detallados para cada plan de riego en cada invernadero configurado.</p>
+        <a href="/" class="back-link">Volver a la Simulación Principal</a>
+
+        <!-- Agrupamos los resultados por invernadero -->
+        {% set resultados_agrupados = lista_resultados|groupby('nombre_invernadero') %}
+        
+        {% for nombre_invernadero, planes in resultados_agrupados %}
+        <section class="invernadero-section">
+            <h2>Invernadero: {{ nombre_invernadero }}</h2>
+
+            {% for resultados in planes %}
+            <div class="plan-section">
+                <h3>Plan de Riego: {{ resultados.nombre_plan }}</h3>
+
+                <!-- Estadísticas Resumidas del Plan -->
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <span class="label">Tiempo Óptimo</span>
+                        <span class="value">{{ resultados.tiempo_optimo }} s</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="label">Agua Total</span>
+                        <span class="value">{{ resultados.agua_requerida }} L</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="label">Fertilizante Total</span>
+                        <span class="value">{{ resultados.fertilizante_requerido }} g</span>
+                    </div>
+                </div>
+
+                <!-- Tabla de Eficiencia de Drones -->
+                <h4>Estadísticas por Dron</h4>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Dron</th>
+                            <th>Agua Consumida (L)</th>
+                            <th>Fertilizante Consumido (g)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for dron_stat in resultados.eficiencia_drones %}
+                        <tr>
+                            <td>{{ dron_stat.nombre }}</td>
+                            <td>{{ dron_stat.litrosAgua }} L</td>
+                            <td>{{ dron_stat.gramosFertilizante }} g</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+                <!-- Tabla de Instrucciones por Segundo -->
+                <h4>Instrucciones por Segundo</h4>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Tiempo (s)</th>
+                            {% for dron_stat in resultados.eficiencia_drones %}
+                                <th>{{ dron_stat.nombre }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for instruccion_segundo in resultados.instrucciones %}
+                        <tr>
+                            <td>{{ instruccion_segundo.segundo }}</td>
+                            {% for dron_stat in resultados.eficiencia_drones %}
+                                {% set accion_encontrada = namespace(valor='Fin') %}
+                                {% for accion_dron in instruccion_segundo.acciones %}
+                                    {% if accion_dron.nombre == dron_stat.nombre %}
+                                        {% set accion_encontrada.valor = accion_dron.accion %}
+                                    {% endif %}
+                                {% endfor %}
+                                {% set accion = accion_encontrada.valor %}
+                                <td class="{% if 'Regar' in accion %}action-regar{% elif 'Esperar' in accion %}action-esperar{% elif 'Fin' in accion %}action-fin{% else %}action-movimiento{% endif %}">
+                                    {{ accion }}
+                                </td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <hr>
+            {% endfor %}
+        </section>
+        {% endfor %}
+        
+        <a href="/" class="back-link">Volver a la Simulación Principal</a>
+    </div>
+</body>
+</html>
