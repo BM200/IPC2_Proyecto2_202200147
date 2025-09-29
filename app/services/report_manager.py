@@ -1,48 +1,36 @@
-# app/services/report_manager.py
 from graphviz import Digraph
 import os
-import time # Para añadir un timestamp y evitar problemas de caché del navegador
+import time
 
-def generar_grafo_tda(plan_de_riego):
+def generar_grafo_tda(lista_tareas_en_t, tiempo_t):
     """
-    Genera una imagen PNG que representa el estado actual de la Cola de tareas.
-    Devuelve la ruta web a la imagen generada.
+    Genera una imagen PNG a partir de una LISTA DE STRINGS que representa
+    el estado de la cola en un tiempo 't'.
     """
-    # Creamos un nuevo grafo dirigido. 'LR' significa Left to Right (de izquierda a derecha).
-    dot = Digraph(comment='Estado de la Cola de Tareas')
+    dot = Digraph(comment=f'Estado de la Cola en t={tiempo_t}')
     dot.attr('node', shape='box', style='rounded,filled', fillcolor='lightblue')
     dot.attr(rankdir='LR')
+    dot.attr(label=f'Estado de la Cola de Tareas en t={tiempo_t}s', labelloc='t', fontsize='16')
 
-    # Nodo inicial que representa el "Frente" de la cola.
     dot.node('frente', 'FRENTE', shape='plaintext')
     
-    # Recorremos la cola a través de su lista enlazada interna
-    nodo_actual = plan_de_riego.secuencia_cola._lista.cabeza
-    
-    if not nodo_actual:
-        # Si la cola está vacía, lo indicamos.
+    if not lista_tareas_en_t:
         dot.node('vacia', 'Cola Vacía', fillcolor='lightgrey')
         dot.edge('frente', 'vacia')
     else:
-        # El primer nodo (el del frente) se conecta al indicador "FRENTE".
-        dot.edge('frente', nodo_actual.dato)
-        
-        # Recorremos el resto de la lista para crear los nodos y las flechas.
-        while nodo_actual and nodo_actual.siguiente:
-            dot.edge(nodo_actual.dato, nodo_actual.siguiente.dato)
-            nodo_actual = nodo_actual.siguiente
+        dot.edge('frente', lista_tareas_en_t[0])
+        for i in range(len(lista_tareas_en_t) - 1):
+            dot.edge(lista_tareas_en_t[i], lista_tareas_en_t[i+1])
 
-    # --- Guardado del archivo ---
-    # La imagen se guardará en la carpeta 'static' para que el navegador pueda acceder a ella.
     output_dir = os.path.join('app', 'static', 'graphs')
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     
-    # Renderizamos el grafo. cleanup=True borra el archivo fuente DOT después de crear el PNG.
-    # Le añadimos un timestamp al nombre para que cada imagen sea única.
     timestamp = int(time.time())
-    ruta_base = os.path.join(output_dir, f'grafo_tda_{timestamp}')
-    dot.render(ruta_base, format='png', cleanup=True)
+    nombre_archivo_png = f'grafo_tda_{timestamp}.png'
+    nombre_archivo_base = f'grafo_tda_{timestamp}'
+    ruta_base_sin_extension = os.path.join(output_dir, nombre_archivo_base)
+
+    dot.render(ruta_base_sin_extension, format='png', cleanup=True)
     
-    # Devolvemos la RUTA WEB a la imagen.
-    return f'static/graphs/grafo_tda_{timestamp}.png'
+    return f'graphs/{nombre_archivo_png}'

@@ -49,31 +49,3 @@ class Dron:
                 f"Hilera: {self.hilera_asignada}, Pos: {self.posicion_actual}, "
                 f"Estado: {self.estado})")
 
-# --- Bloque de Prueba ---
-if __name__ == '__main__':
-    # Creamos un dron
-    dron1 = Dron(id=1, nombre='DR01')
-    dron1.asignar_hilera(1)
-    
-    print("Estado inicial del dron:")
-    print(dron1)
-    
-    # Simulamos algunas acciones
-    print("\nSimulando acciones...")
-    dron1.estado = "moviendo"
-    dron1.posicion_actual = 2
-    print("Después de moverse:")
-    print(dron1)
-    
-    dron1.estado = "regando"
-    dron1.consumir_recursos(litros_agua=1.0, gramos_fertilizante=100.0)
-    print("Después de regar:")
-    print(dron1)
-    print(f"Total agua consumida: {dron1.litros_agua_consumidos} L")
-    print(f"Total fertilizante consumido: {dron1.gramos_fert_consumidos} g")
-    
-    # Probamos la función de reseteo
-    print("\nProbando el reseteo para una nueva simulación...")
-    dron1.resetear()
-    print("Estado después de resetear:")
-    print(dron1)

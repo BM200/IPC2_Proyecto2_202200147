@@ -3,15 +3,12 @@ import copy
 
 class Simulador:
     def __init__(self, invernadero_original, plan_original):
-        # Usamos deepcopy para el invernadero para no alterar el original con posiciones, etc.
         self.invernadero = copy.deepcopy(invernadero_original)
-        # El plan ya viene copiado de routes.py, lo usamos directamente.
         self.plan = plan_original
-        
         self.tiempo_total = 0
         self.instrucciones_por_tiempo = []
-        # Obtenemos las asignaciones específicas que participarán en este plan.
         self.asignaciones_activas = self._determinar_asignaciones_activas()
+        self.historial_cola = []
 
     def _parsear_paso(self, paso_str):
         partes = paso_str.split('-')
@@ -42,11 +39,14 @@ class Simulador:
     def ejecutar_simulacion(self):
         cola_tareas = self.plan.secuencia_cola
         
+        # Guardamos una representación simple de la cola (lista de strings)
+        tareas_actuales_lista = [tarea for tarea in cola_tareas._lista]
+        self.historial_cola.append(tareas_actuales_lista)
+
         while not cola_tareas.esta_vacia():
             self.tiempo_total += 1
             dron_ha_regado_este_segundo = False
             acciones_del_segundo = []
-
             tarea_principal_str = cola_tareas.ver_frente()
             h_principal, pos_principal = self._parsear_paso(tarea_principal_str)
 
@@ -96,20 +96,24 @@ class Simulador:
                 'segundo': self.tiempo_total,
                 'acciones': acciones_del_segundo
             })
+            
+            # Guardamos la representación simple de la cola en cada paso
+            tareas_actuales_lista = [tarea for tarea in cola_tareas._lista]
+            self.historial_cola.append(tareas_actuales_lista)
 
     def obtener_resultados(self):
         stats_drones_activos = []
         for asignacion in self.asignaciones_activas:
-            dron = asignacion.dron
             stats_drones_activos.append({
-                'nombre': dron.nombre,
-                'litrosAgua': round(dron.litros_agua_consumidos, 2),
-                'gramosFertilizante': round(dron.gramos_fert_consumidos, 2)
+                'nombre': asignacion.dron.nombre,
+                'litrosAgua': round(asignacion.dron.litros_agua_consumidos, 2),
+                'gramosFertilizante': round(asignacion.dron.gramos_fert_consumidos, 2)
             })
         
         agua_total = sum(d['litrosAgua'] for d in stats_drones_activos)
         fert_total = sum(d['gramosFertilizante'] for d in stats_drones_activos)
 
+        # El diccionario de resultados ahora es 100% serializable a JSON
         return {
             'nombre_invernadero': self.invernadero.nombre,
             'nombre_plan': self.plan.nombre,
@@ -117,5 +121,6 @@ class Simulador:
             'agua_requerida': round(agua_total, 2),
             'fertilizante_requerido': round(fert_total, 2),
             'eficiencia_drones': stats_drones_activos,
-            'instrucciones': self.instrucciones_por_tiempo
+            'instrucciones': self.instrucciones_por_tiempo,
+            'historial_cola': self.historial_cola
         }
